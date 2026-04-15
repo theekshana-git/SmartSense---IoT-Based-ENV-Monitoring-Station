@@ -14,6 +14,7 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
+    # Sensor Readings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS readings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,6 +43,15 @@ def init_db():
 
             light_status TEXT,
             light_rec TEXT
+        )
+    ''')
+
+    # NEW: Forecasts Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS forecasts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT
         )
     ''')
 
@@ -131,6 +141,23 @@ def receive_data():
 
     return {"status": "success"}
 
+# --- FORECAST API (NEW) ---
+@app.route("/api/forecast", methods=["POST"])
+def receive_forecast():
+    data = request.json
+    status = data.get("status")
+
+    if not status:
+        return jsonify({"error": "Missing 'status' in JSON body"}), 400
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO forecasts (status) VALUES (?)", (status,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Forecast saved successfully", "status": status})
+
 # --- GET LATEST ---
 @app.route("/api/data")
 def get_latest_data():
@@ -166,6 +193,7 @@ def weekly_report():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
+    # UPDATED: Changed from WHERE timestamp to ORDER BY ... LIMIT 500
     cursor.execute("""
         SELECT 
             temperature,
@@ -177,7 +205,7 @@ def weekly_report():
             gas_level,
             light_level
         FROM readings 
-        WHERE timestamp >= datetime('now', '-7 days')
+        ORDER BY timestamp DESC LIMIT 500
     """)
 
     data = cursor.fetchall()
@@ -236,6 +264,7 @@ def clear_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM readings")
+    cursor.execute("DELETE FROM forecasts") # Clear forecasts too
     conn.commit()
     conn.close()
 
