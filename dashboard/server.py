@@ -1,10 +1,12 @@
+
 from flask import Flask, request, jsonify, send_file, session, redirect
 import sqlite3
 import os
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+from flask import Flask, request, jsonify, send_file, session, redirect, render_template
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="web_interface")
 app.secret_key = "supersecretkey"
 
 DB_FILE = 'sensor_data.db'
@@ -14,7 +16,6 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # Sensor Readings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS readings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,15 +47,6 @@ def init_db():
         )
     ''')
 
-    # NEW: Forecasts Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS forecasts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            status TEXT
-        )
-    ''')
-
     conn.commit()
     conn.close()
 
@@ -67,9 +59,10 @@ def require_admin():
 # --- LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None
     if request.method == 'POST':
-        u = request.form['username']
-        p = request.form['password']
+        u = request.form.get('username')
+        p = request.form.get('password')
 
         if u == "admin" and p == "admin123":
             session['role'] = 'admin'
@@ -77,15 +70,11 @@ def login():
         elif u == "viewer" and p == "viewer123":
             session['role'] = 'viewer'
             return redirect("/")
+        else:   
+            error = "Invalid username or password. Please try again."
 
-    return '''
-    <h2>Login</h2>
-    <form method="post">
-        Username: <input name="username"><br>
-        Password: <input name="password" type="password"><br>
-        <button type="submit">Login</button>
-    </form>
-    '''
+    # If it's a GET request, or if the login failed, render the page
+    return render_template("login.html", error=error)
 
 # --- SENSOR API ---
 @app.route("/sensor", methods=["POST"])
@@ -141,23 +130,6 @@ def receive_data():
 
     return {"status": "success"}
 
-# --- FORECAST API (NEW) ---
-@app.route("/api/forecast", methods=["POST"])
-def receive_forecast():
-    data = request.json
-    status = data.get("status")
-
-    if not status:
-        return jsonify({"error": "Missing 'status' in JSON body"}), 400
-
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO forecasts (status) VALUES (?)", (status,))
-    conn.commit()
-    conn.close()
-
-    return jsonify({"message": "Forecast saved successfully", "status": status})
-
 # --- GET LATEST ---
 @app.route("/api/data")
 def get_latest_data():
@@ -193,7 +165,6 @@ def weekly_report():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # UPDATED: Changed from WHERE timestamp to ORDER BY ... LIMIT 500
     cursor.execute("""
         SELECT 
             temperature,
@@ -205,7 +176,7 @@ def weekly_report():
             gas_level,
             light_level
         FROM readings 
-        ORDER BY timestamp DESC LIMIT 500
+        WHERE timestamp >= datetime('now', '-7 days')
     """)
 
     data = cursor.fetchall()
@@ -264,7 +235,6 @@ def clear_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM readings")
-    cursor.execute("DELETE FROM forecasts") # Clear forecasts too
     conn.commit()
     conn.close()
 
@@ -275,26 +245,12 @@ def clear_db():
 def home():
     role = session.get("role")
 
-    html = """
-    <h1>Smart Environment Dashboard</h1>
-    <p><a href="/login">Login</a></p>
-    """
+    # If the user is not logged in, force them to the login page
+    if not role:
+        return redirect("/login")
 
-    if role == "admin":
-        html += """
-        <p><a href="/api/report/weekly">Download Report (Admin)</a></p>
-        <p><a href="/api/clear">Clear DB (Admin)</a></p>
-        <p><b>Logged in as Admin</b></p>
-        """
-
-    elif role == "viewer":
-        html += "<p><b>Logged in as Viewer (read-only)</b></p>"
-
-    else:
-        html += "<p>You are not logged in.</p>"
-
-    return html
-
+    # If they are logged in, show them the dashboard
+    return render_template("index.html", role=role)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
