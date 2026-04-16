@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Environment Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Pulse animation for Hazardous AQI */
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgb(239, 68, 68); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); border-color: transparent; }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: transparent; }
+        }
+        .hazardous-pulse { animation: pulse-red 2s infinite; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-[#0B1121] dark:text-gray-100 font-sans min-h-screen flex flex-col transition-colors duration-300">
+
+    <nav class="bg-white dark:bg-[#111827] text-slate-800 dark:text-white p-4 shadow-sm flex justify-between items-center z-10 relative border-b border-gray-200 dark:border-slate-800/50 transition-colors duration-300">
+        <h1 class="text-xl md:text-2xl font-black flex items-center gap-3 tracking-tight">
+            <div class="relative flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800 rounded-lg shadow-inner border border-gray-200 dark:border-slate-700 transform rotate-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" class="w-6 h-6 text-blue-600 dark:text-blue-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke="currentColor" d="M11.996 22.001c-6.626 0-10-5.468-10-10.495C1.996 5.568 6.561 2 11.996 2c5.436 0 10 3.568 10 9.506 0 5.027-3.374 10.495-10 10.495z"/>
+                    <circle cx="12" cy="14" r="2" fill="currentColor" class="text-emerald-500 dark:text-emerald-400" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v10M12 14l4-4M12 14l-4-4" class="text-emerald-500 dark:text-emerald-400" />
+                </svg>
+            </div>
+            
+            <span>Smart<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500 dark:from-blue-400 dark:to-emerald-400">Sense</span></span>
+        </h1>
+        <div class="flex items-center gap-4">
+            
+            <button onclick="toggleTheme()" class="p-2 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 transition" title="Toggle Theme">
+                <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden dark:block text-yellow-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                </svg>
+                <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 block dark:hidden text-slate-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                </svg>
+            </button>
+
+            {% if role %}
+                <span class="text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 py-1 px-3 rounded font-semibold border border-blue-200 dark:border-blue-800">Role: {{ role | upper }}</span>
+                <a href="/login" class="text-sm font-medium text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hidden sm:block">Switch User</a>
+            {% else %}
+                <a href="/login" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-5 py-2 rounded-lg font-bold transition shadow-md">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="flex flex-col lg:flex-row max-w-[1400px] mx-auto w-full mt-6 gap-6 px-4 pb-8 flex-1">
+        
+        <main class="flex-1 flex flex-col">
+            <div class="mb-6 border-b border-gray-200 dark:border-slate-800/50 pb-2 flex gap-4">
+                <button onclick="switchTab('dashboard')" id="btn-dashboard" class="px-4 py-2 font-bold text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 transition">Live Dashboard</button>
+                <button onclick="switchTab('analytics')" id="btn-analytics" class="px-4 py-2 font-bold text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 border-b-2 border-transparent transition">Analytics</button>
+            </div>
+
+            <div id="tab-dashboard" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 flex-1 content-start">
+                
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300" id="card-aqi">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Air Quality</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-black text-gray-800 dark:text-white transition-colors" id="val-aqi">--</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-aqi" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Temperature</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-temp">--</span>
+                            <span class="text-lg font-bold text-gray-400">°C</span>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-500 mt-1" id="val-heat">Status: --</p>
+                    </div>
+                    <div id="icon-box-temp" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 3.75v10.125a3.75 3.75 0 103 0V3.75a1.5 1.5 0 10-3 0zM12 15a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Humidity</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-hum">--</span>
+                            <span class="text-lg font-bold text-gray-400">%</span>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-500 mt-1" id="val-dew">Status: --</p>
+                    </div>
+                    <div id="icon-box-hum" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21.75c-2.64 0-5.25-2.062-5.25-5.625 0-3.328 3.525-8.563 4.8-10.237a.64.64 0 01.9 0c1.275 1.674 4.8 6.909 4.8 10.237 0 3.563-2.61 5.625-5.25 5.625z" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Pressure</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-pres">--</span>
+                            <span class="text-lg font-bold text-gray-400">hPa</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-pres" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Gas Level</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-gas">--</span>
+                            <span class="text-lg font-bold text-gray-400">PPM</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-gas" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Light Level</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-light">--</span>
+                            <span class="text-lg font-bold text-gray-400">LUX</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-light" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">PM 1.0</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-pm1">--</span>
+                            <span class="text-lg font-bold text-gray-400">µg</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-pm1" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25-4.5h6.525m-6.525-4.5h10.35m-10.35-4.5h17.25" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">PM 2.5</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-pm25">--</span>
+                            <span class="text-lg font-bold text-gray-400">µg</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-pm25" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25-4.5h6.525m-6.525-4.5h10.35m-10.35-4.5h17.25" /></svg>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 flex items-center justify-between transition-all duration-300">
+                    <div class="flex flex-col">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">PM 10.0</h3>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-3xl font-black text-gray-800 dark:text-white" id="val-pm10">--</span>
+                            <span class="text-lg font-bold text-gray-400">µg</span>
+                        </div>
+                    </div>
+                    <div id="icon-box-pm10" class="p-4 rounded-full transition-colors duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25-4.5h6.525m-6.525-4.5h10.35m-10.35-4.5h17.25" /></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-analytics" class="hidden flex-1 flex flex-col gap-6">
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50">
+                    <h3 class="text-lg font-bold mb-4 text-gray-700 dark:text-gray-200">Environment Trends</h3>
+                    <canvas id="envChart" height="100"></canvas>
+                </div>
+                <div class="bg-white dark:bg-[#111827] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50">
+                    <h3 class="text-lg font-bold mb-4 text-gray-700 dark:text-gray-200">Pollutant Trends</h3>
+                    <canvas id="polChart" height="100"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-full lg:w-80 flex flex-col gap-6 shrink-0">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800/50 p-6 border-t-4 border-t-yellow-400 dark:border-t-yellow-500 h-fit">
+                <h2 class="text-xl font-black mb-6 flex items-center justify-between group relative text-gray-800 dark:text-white">
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 mr-2 text-yellow-500"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+                        Edge Alerts
+                    </div>
+                    <div class="text-gray-400 hover:text-blue-500 cursor-help transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                        <div class="absolute right-0 top-8 w-64 bg-slate-900 border border-slate-700 text-white text-xs leading-relaxed rounded-lg p-3 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none font-normal">
+                            <strong class="text-blue-400 block mb-1">Edge Intelligence</strong>
+                            Actions calculated directly on the local sensor node ensuring immediate alerts without Wi-Fi!
+                        </div>
+                    </div>
+                </h2>
+                
+                <div class="mb-5">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Air Quality Action</h4>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 p-3 rounded-lg" id="rec-aqi">Waiting...</p>
+                </div>
+                <div class="mb-5">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Heat Action</h4>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 p-3 rounded-lg" id="rec-heat">Waiting...</p>
+                </div>
+                <div>
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Dew Action</h4>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 p-3 rounded-lg" id="rec-dew">Waiting...</p>
+                </div>
+            </div>
+
+            {% if role == 'admin' %}
+            <div class="bg-white dark:bg-[#111827] text-slate-800 dark:text-white rounded-2xl shadow-sm dark:shadow-xl border border-gray-100 dark:border-slate-800/50 p-6 h-fit relative overflow-hidden transition-colors duration-300">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 dark:bg-blue-600 rounded-full blur-3xl opacity-10 dark:opacity-20 pointer-events-none transition-opacity duration-300"></div>
+                
+                <h2 class="text-xl font-bold mb-5 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2 text-blue-500 dark:text-blue-400"><path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854-.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.78.929l-.15.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    Admin Controls
+                </h2>
+                <div class="flex flex-col gap-3">
+                    <a href="/api/report/weekly" class="text-center bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 dark:bg-blue-600/20 dark:hover:bg-blue-600/40 dark:border-blue-500/50 dark:text-blue-300 py-3 rounded-lg font-bold shadow-sm transition flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                        Export Data
+                    </a>
+                    <button onclick="clearDB()" class="text-center bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 dark:bg-red-500/10 dark:hover:bg-red-500/30 dark:border-red-500/50 dark:text-red-400 py-3 rounded-lg font-bold shadow-sm transition flex justify-center items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                        System Reset
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+
+    <script>
+        // --- THEME TOGGLE LOGIC ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateChartTheme();
+        }
+
+        if (localStorage.getItem('theme') === 'light') { document.documentElement.classList.remove('dark'); }
+
+        // --- TAB LOGIC ---
+        function switchTab(tabName) {
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            document.getElementById('tab-analytics').classList.add('hidden');
+            document.getElementById('btn-dashboard').className = 'px-4 py-2 font-bold text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 border-b-2 border-transparent transition';
+            document.getElementById('btn-analytics').className = 'px-4 py-2 font-bold text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 border-b-2 border-transparent transition';
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabName}`).className = 'px-4 py-2 font-bold text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 transition';
+        }
+
+        // --- DYNAMIC ICON COLOR HELPER ---
+        function setIconStyle(id, value) {
+            const box = document.getElementById(`icon-box-${id}`);
+            if(!box) return;
+            
+            let classes = "p-4 rounded-full transition-colors duration-500 ";
+            
+            if (id === 'aqi') {
+                if(value === 'Hazardous') classes += "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
+                else if(value === 'Moderate') classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400";
+                else classes += "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400";
+            }
+            else if (id === 'temp') {
+                if(value > 35) classes += "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"; 
+                else if(value > 30) classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400"; 
+                else if(value < 15) classes += "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"; 
+                else classes += "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400"; 
+            }
+            else if (id === 'hum') {
+                if(value > 75) classes += "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"; 
+                else if(value < 30) classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400"; 
+                else classes += "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"; 
+            }
+            else if (id === 'pres') {
+                classes += "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400"; 
+            }
+            else if (id === 'gas') {
+                if(value > 600) classes += "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
+                else if(value > 300) classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400";
+                else classes += "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400";
+            }
+            else if (id === 'light') {
+                if(value > 4000) classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400"; 
+                else if(value < 500) classes += "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-gray-400"; 
+                else classes += "bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400"; 
+            }
+            else if (id.startsWith('pm')) {
+                if(value > 75) classes += "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
+                else if(value > 35) classes += "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400";
+                else classes += "bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400";
+            }
+
+            box.className = classes;
+        }
+
+        // --- FETCH LIVE DATA ---
+        async function fetchLiveData() {
+            try {
+                const res = await fetch('/api/data');
+                const data = await res.json();
+                if (data.error) return; 
+
+                document.getElementById('val-temp').innerText = data.temperature.toFixed(1);
+                document.getElementById('val-hum').innerText = data.humidity.toFixed(1);
+                document.getElementById('val-pres').innerText = Math.round(data.pressure);
+                document.getElementById('val-gas').innerText = data.gas_level;
+                document.getElementById('val-light').innerText = data.light_level;
+                document.getElementById('val-pm1').innerText = Math.round(data.pm1_0);
+                document.getElementById('val-pm25').innerText = Math.round(data.pm2_5);
+                document.getElementById('val-pm10').innerText = Math.round(data.pm10_0);
+                document.getElementById('val-aqi').innerText = data.aqi_status;
+
+                setIconStyle('temp', data.temperature);
+                setIconStyle('hum', data.humidity);
+                setIconStyle('pres', data.pressure);
+                setIconStyle('gas', data.gas_level);
+                setIconStyle('light', data.light_level);
+                setIconStyle('pm1', data.pm1_0);
+                setIconStyle('pm25', data.pm2_5);
+                setIconStyle('pm10', data.pm10_0);
+                setIconStyle('aqi', data.aqi_status); 
+
+                document.getElementById('val-heat').innerText = "Status: " + data.heat_status;
+                document.getElementById('val-dew').innerText = "Status: " + data.dew_status;
+                document.getElementById('rec-aqi').innerText = data.aqi_rec;
+                document.getElementById('rec-heat').innerText = data.heat_rec;
+                document.getElementById('rec-dew').innerText = data.dew_rec;
+
+                const aqiCard = document.getElementById('card-aqi');
+                if (data.aqi_status === "Hazardous") {
+                    aqiCard.classList.add('hazardous-pulse', 'border-red-500', 'bg-red-50', 'dark:bg-red-950/20');
+                } else {
+                    aqiCard.classList.remove('hazardous-pulse', 'border-red-500', 'bg-red-50', 'dark:bg-red-950/20');
+                }
+            } catch (err) {
+                console.error("Error fetching live data", err);
+            }
+        }
+
+        // --- CHART.JS (ANALYTICS TAB) ---
+        let envChartInstance = null; let polChartInstance = null;
+
+        function getThemeColors() {
+            const isDark = document.documentElement.classList.contains('dark');
+            return { text: isDark ? '#94a3b8' : '#6b7280', grid: isDark ? '#1e293b' : '#e5e7eb' };
+        }
+
+        async function initCharts() {
+            const res = await fetch('/api/history');
+            let historyData = await res.json();
+            historyData = historyData.reverse(); 
+
+            const labels = historyData.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            const temps = historyData.map(d => d.temperature);
+            const hums = historyData.map(d => d.humidity);
+            const press = historyData.map(d => d.pressure);
+            const gas = historyData.map(d => d.gas_level);
+            const pm25 = historyData.map(d => d.pm2_5);
+
+            const colors = getThemeColors();
+            const commonOptions = {
+                responsive: true,
+                scales: {
+                    x: { ticks: { color: colors.text }, grid: { color: colors.grid } },
+                    y: { ticks: { color: colors.text }, grid: { color: colors.grid } }
+                },
+                plugins: { legend: { labels: { color: colors.text } } }
+            };
+
+            envChartInstance = new Chart(document.getElementById('envChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Temp (°C)', data: temps, borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.3, borderWidth: 2 },
+                        { label: 'Humidity (%)', data: hums, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, borderWidth: 2 },
+                        { label: 'Pressure', data: press, borderColor: '#0ea5e9', hidden: true } 
+                    ]
+                },
+                options: commonOptions
+            });
+
+            polChartInstance = new Chart(document.getElementById('polChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Gas Level', data: gas, borderColor: '#a855f7', backgroundColor: '#a855f7', tension: 0.3, borderWidth: 2 },
+                        { label: 'PM 2.5', data: pm25, borderColor: '#f97316', backgroundColor: '#f97316', tension: 0.3, borderWidth: 2 }
+                    ]
+                },
+                options: commonOptions
+            });
+        }
+
+        function updateChartTheme() {
+            const colors = getThemeColors();
+            const updateLineChart = (chart) => {
+                if(!chart) return;
+                chart.options.scales.x.ticks.color = colors.text;
+                chart.options.scales.x.grid.color = colors.grid;
+                chart.options.scales.y.ticks.color = colors.text;
+                chart.options.scales.y.grid.color = colors.grid;
+                chart.options.plugins.legend.labels.color = colors.text;
+                chart.update();
+            };
+            updateLineChart(envChartInstance);
+            updateLineChart(polChartInstance);
+        }
+
+        async function clearDB() {
+            if(confirm("Are you sure you want to delete all historical data?")) {
+                await fetch('/api/clear'); alert("Database cleared!"); location.reload();
+            }
+        }
+
+        fetchLiveData();
+        setInterval(fetchLiveData, 2000);
+        initCharts();
+    </script>
+</body>
+</html>
