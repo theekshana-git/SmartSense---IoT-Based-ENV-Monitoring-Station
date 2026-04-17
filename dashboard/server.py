@@ -240,6 +240,86 @@ def clear_db():
 
     return "Database Cleared"
 
+
+# --- FORECAST API (dP/dt Algorithm) ---
+@app.route("/api/forecast")
+def get_forecast():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Get the last 20 readings (assuming 1 reading every ~10 mins = ~3 hours of data)
+    cursor.execute('''
+        SELECT pressure 
+        FROM readings 
+        WHERE pressure IS NOT NULL 
+        ORDER BY timestamp DESC 
+        LIMIT 20
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Extract just the pressure values into a list and reverse it so oldest is first
+    history = [r['pressure'] for r in rows]
+    history.reverse()
+
+    # Default fallback if the database is brand new and doesn't have enough data yet
+    if len(history) < 2:
+        return jsonify({
+            "status": "Calibrating",
+            "risk": "Low",
+            "confidence": 0,
+            "pressure_trend": 0.0,
+            "time_window": "Needs 1 hr data",
+            "wind_forecast": "--",
+            "pressure_history": [1013.0, 1013.0]
+        })
+
+    # Calculate dP/dt (Trend)
+    # Compare the newest reading (last in list) to the oldest reading (first in list)
+    oldest_pressure = history[0]
+    newest_pressure = history[-1]
+    
+    # Calculate the total drop or rise
+    trend = newest_pressure - oldest_pressure 
+    
+    # Determine Status and Risk based on the Barometric Trend
+    if trend <= -2.0:
+        status = "Storm Expected"
+        risk = "High"
+        confidence = 85
+        wind = "Gusty / Strong"
+        window = "2-4 hours"
+    elif trend <= -0.5:
+        status = "Rain Likely"
+        risk = "Moderate"
+        confidence = 65
+        wind = "Breezy"
+        window = "4-6 hours"
+    elif trend >= 2.0:
+        status = "Clearing / Fair"
+        risk = "Low"
+        confidence = 80
+        wind = "Calm"
+        window = "--"
+    else:
+        status = "Stable Conditions"
+        risk = "Low"
+        confidence = 90
+        wind = "Normal"
+        window = "--"
+
+    # Send exactly what the Flutter app expects
+    return jsonify({
+        "status": status,
+        "risk": risk,
+        "confidence": confidence,
+        "pressure_trend": trend,
+        "time_window": window,
+        "wind_forecast": wind,
+        "pressure_history": history
+    })
+
 # --- DASHBOARD ---
 @app.route("/")
 def home():

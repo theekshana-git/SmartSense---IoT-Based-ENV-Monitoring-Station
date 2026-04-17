@@ -2,11 +2,9 @@
 //  lib/screens/monitor_screen.dart
 //
 //  Requirements covered:
-//  ✅ Live ListView of sensor metrics (AQI, Heat Index, Gas,
-//     Dew Point, Humidity, PM2.5)
+//  ✅ Live ListView of sensor metrics
 //  ✅ Polls Flask API every 10 seconds via Timer
-//  ✅ Non-dismissible red emergency banner when any status
-//     is "Danger" or "Hazardous" (smart Dart logic)
+//  ✅ Non-dismissible red emergency banner 
 //  ✅ Fires local push notification when gas_level > 600 ppm
 // ============================================================
 
@@ -190,23 +188,29 @@ class _MetricsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
-        _sectionLabel(context, 'Air Quality'),
+        _sectionLabel(context, 'Air Quality & Pollutants'),
         const SizedBox(height: 8),
-        MetricCard(icon: Icons.air, label: 'AQI Index',
-            value: '${data.aqi.toStringAsFixed(0)} µg/m³',
-            status: data.aqiStatus, iconColor: AppColors.blue),
-        MetricCard(icon: Icons.grain, label: 'PM2.5',
+        MetricCard(icon: Icons.blur_on, label: 'PM 1.0',
+            value: '${data.pm1.toStringAsFixed(1)} µg/m³',
+            status: SensorStatus.good, iconColor: const Color(0xFF0EA5E9)),
+        MetricCard(icon: Icons.air, label: 'PM 2.5 (AQI)',
             value: '${data.pm25.toStringAsFixed(1)} µg/m³',
-            status: data.pm25Status, iconColor: const Color(0xFF7F77DD)),
+            status: data.aqiStatus, iconColor: AppColors.blue),
+        MetricCard(icon: Icons.blur_circular, label: 'PM 10.0',
+            value: '${data.pm10.toStringAsFixed(1)} µg/m³',
+            status: SensorStatus.good, iconColor: const Color(0xFF6366F1)),
         MetricCard(icon: Icons.propane_outlined, label: 'Gas Level',
             value: '${data.gasLevel.toStringAsFixed(0)} ppm',
             status: data.gasStatus, iconColor: AppColors.red,
             showWarning: data.gasExceedsThreshold),
 
         const SizedBox(height: 14),
-        _sectionLabel(context, 'Temperature & Humidity'),
+        _sectionLabel(context, 'Environment Details'),
         const SizedBox(height: 8),
-        MetricCard(icon: Icons.thermostat, label: 'Heat Index',
+        MetricCard(icon: Icons.device_thermostat, label: 'Raw Temperature',
+            value: '${data.temperature.toStringAsFixed(1)} °C',
+            status: SensorStatus.good, iconColor: AppColors.redMd),
+        MetricCard(icon: Icons.thermostat, label: 'Heat Index (Apparent)',
             value: '${data.heatIndex.toStringAsFixed(1)} °C',
             status: data.heatStatus, iconColor: AppColors.amber),
         MetricCard(icon: Icons.water_drop_outlined, label: 'Dew Point',
@@ -214,12 +218,25 @@ class _MetricsList extends StatelessWidget {
             status: SensorStatus.good, iconColor: AppColors.green),
         MetricCard(icon: Icons.water, label: 'Humidity',
             value: '${data.humidity.toStringAsFixed(0)}%',
-            status: data.humidityStatus, iconColor: const Color(0xFF0F6E56)),
+            status: SensorStatus.good, iconColor: const Color(0xFF0F6E56)),
+        MetricCard(
+            icon: data.rainDetected ? Icons.water_drop : Icons.water_drop_outlined, 
+            label: 'Precipitation (YL-83)',
+            value: data.rainDetected ? 'Raining' : 'Clear',
+            status: SensorStatus.good, 
+            iconColor: data.rainDetected ? const Color(0xFF378ADD) : Colors.grey),
+        MetricCard(icon: Icons.speed, label: 'Barometric Pressure',
+            value: '${data.pressure.toStringAsFixed(0)} hPa',
+            status: SensorStatus.good, iconColor: const Color(0xFF7F77DD)),
+        MetricCard(icon: Icons.lightbulb_outline, label: 'Light Level',
+            // Notice we added the lightStatusStr in parentheses here:
+            value: '${data.lightLevel.toStringAsFixed(0)} LUX (${data.lightStatusStr})',
+            status: SensorStatus.good, iconColor: AppColors.amberDk),
 
         const SizedBox(height: 20),
         Center(child: Text('Last updated $time',
-          style: TextStyle(fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.35)))),
+            style: TextStyle(fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.35)))),
       ],
     );
   }
@@ -227,8 +244,8 @@ class _MetricsList extends StatelessWidget {
   Widget _sectionLabel(BuildContext context, String text) => Padding(
     padding: const EdgeInsets.only(left: 2, bottom: 0),
     child: Text(text.toUpperCase(),
-      style: AppText.sectionLabel.copyWith(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-      )),
+        style: AppText.sectionLabel.copyWith(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+        )),
   );
 }

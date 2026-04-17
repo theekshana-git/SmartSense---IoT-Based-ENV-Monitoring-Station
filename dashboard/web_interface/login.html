@@ -33,16 +33,19 @@
     <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-8 sm:p-10 relative z-10 transition-colors duration-300">
         
         <div class="flex flex-col items-center mb-10">
-            <div class="relative flex items-center justify-center w-20 h-20 mb-4 bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-800 dark:to-slate-800 rounded-2xl shadow-inner border border-gray-200 dark:border-slate-700 transform rotate-3 transition-transform hover:rotate-0 duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" class="w-12 h-12 text-blue-600 dark:text-blue-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke="currentColor" d="M11.996 22.001c-6.626 0-10-5.468-10-10.495C1.996 5.568 6.561 2 11.996 2c5.436 0 10 3.568 10 9.506 0 5.027-3.374 10.495-10 10.495z"/>
-                    <circle cx="12" cy="14" r="2" fill="currentColor" class="text-emerald-500 dark:text-emerald-400" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v10M12 14l4-4M12 14l-4-4" class="text-emerald-500 dark:text-emerald-400" />
+            <div class="relative flex items-center justify-center w-24 h-24 mb-5 bg-[#182136] rounded-[2rem] border border-[#2A3B5C] overflow-hidden shadow-lg">
+                <div class="absolute w-12 h-12 border border-[#378ADD]/20 rounded-full"></div>
+                <div class="absolute w-20 h-20 border border-[#378ADD]/20 rounded-full"></div>
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-10 h-10 text-[#378ADD] relative z-10">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 13a1 1 0 100-2 1 1 0 000 2z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 9.172a4 4 0 000 5.656M14.828 9.172a4 4 0 010 5.656" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.343 6.343a8 8 0 000 11.314M17.657 6.343a8 8 0 010 11.314" />
                 </svg>
             </div>
             
-            <h1 class="text-3xl font-black tracking-tight text-gray-900 dark:text-white">Smart<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-500 dark:from-blue-400 dark:to-emerald-400">Sense</span></h1>
-            <p class="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-2">Secure Gateway</p>
+            <h1 class="text-4xl font-bold tracking-tighter text-slate-900 dark:text-white">SmartSense</h1>
+            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-2 tracking-wide">Environmental Intelligence</p>
         </div>
 
         {% if error %}

@@ -2,7 +2,6 @@
 //  lib/screens/alerts_screen.dart
 //
 //  Requirements covered:
-//  ✅ Push notification simulation button (gas > 600 ppm)
 //  ✅ Configurable thresholds via sliders (CRUD state)
 //  ✅ Notification log with timestamps
 //  ✅ Flask API URL configuration + connection test
@@ -11,7 +10,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../services/notification_service.dart';
 import '../utils/app_theme.dart';
 
 class _Alert {
@@ -36,7 +34,7 @@ class AlertsScreen extends StatefulWidget {
 class _AlertsScreenState extends State<AlertsScreen> {
 
   // ── Threshold CRUD state ─────────────────────────────────
-  double _gasThreshold  = 600;
+  double _gasThreshold  = 1500;
   double _aqiThreshold  = 150;
   double _heatThreshold = 40;
   bool   _gasEnabled    = true;
@@ -44,7 +42,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   bool   _heatEnabled   = false;
 
   // ── Connection test ──────────────────────────────────────
-  String _apiUrl = 'http://192.168.1.100:5000';
+  String _apiUrl = 'http://192.168.7.27:5000';
   bool _testing = false;
   bool? _connResult;
 
@@ -71,19 +69,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
     ApiService.baseUrl = _apiUrl;
     final ok = await ApiService.testConnection(_apiUrl);
     setState(() { _testing = false; _connResult = ok; });
-  }
-
-  void _simulateGasNotif() {
-    NotificationService.showGasAlert(724);
-    setState(() {
-      _log.insert(0, _Alert(
-        title: 'Gas Level Alert (simulated)',
-        body: 'Simulated: 724 ppm exceeded ${_gasThreshold.toInt()} ppm limit.',
-        time: DateTime.now(),
-        icon: Icons.propane_outlined,
-        iconBg: AppColors.redL, iconFg: AppColors.red,
-      ));
-    });
   }
 
   @override
@@ -120,8 +105,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   _label('Alert Thresholds'),
                   const SizedBox(height: 10),
                   _ThresholdCard(
-                    label: 'Gas Level limit', unit: 'ppm',
-                    value: _gasThreshold, min: 200, max: 1000,
+                    label: 'Gas (CO2) limit', unit: 'ppm',
+                    value: _gasThreshold, 
+                    min: 400,  // Fresh air baseline
+                    max: 3000, // Hazardous level
                     enabled: _gasEnabled,
                     onChanged: (v) => setState(() => _gasThreshold = v),
                     onToggle:  (v) => setState(() => _gasEnabled  = v),
@@ -142,11 +129,6 @@ class _AlertsScreenState extends State<AlertsScreen> {
                     onChanged: (v) => setState(() => _heatThreshold = v),
                     onToggle:  (v) => setState(() => _heatEnabled  = v),
                   ),
-
-                  const SizedBox(height: 22),
-                  _label('Push Notification Test'),
-                  const SizedBox(height: 10),
-                  _SimulateCard(onTap: _simulateGasNotif),
 
                   const SizedBox(height: 22),
                   _label('Flask API Connection'),
@@ -257,42 +239,6 @@ class _ThresholdCard extends StatelessWidget {
               divisions: ((max - min) / 10).round(),
               onChanged: onChanged),
           ),
-      ]),
-    );
-  }
-}
-
-// ── Simulate notification card ────────────────────────────────
-class _SimulateCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _SimulateCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Tap the button below to fire a simulated gas level alert (724 ppm).',
-          style: TextStyle(fontSize: 13, height: 1.5,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65))),
-        const SizedBox(height: 14),
-        SizedBox(width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: onTap,
-            icon: const Icon(Icons.notifications_active_rounded, size: 18),
-            label: const Text('Send Test Notification'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          )),
       ]),
     );
   }

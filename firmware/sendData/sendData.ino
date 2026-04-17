@@ -8,7 +8,11 @@
 // --- Network Credentials ---
 const char* ssid = "Redmi Note 8";
 const char* password = "20060601";
-const char* serverName = "http://192.168.194.27:5000/sensor";
+const char* serverName = "http://192.168.129.27:5000/sensor";
+
+// --- Timing Variables ---
+unsigned long lastPostTime = 0;
+const unsigned long postInterval = 8000; // 8 seconds in milliseconds
 
 // --- Sensor Pin Definitions ---
 #define DHTPIN 27
@@ -129,15 +133,22 @@ void setup() {
 }
 
 void loop() {
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  float pressure = bmp.readPressure() / 100.0F;
-  int ldrValue = analogRead(LDR_PIN);
-  int mqValue = analogRead(MQ135_PIN);
-  int rainValue = digitalRead(RAIN_PIN); 
+  // 1. Constantly read the PMS sensor! 
+  // This keeps the Serial buffer empty and updates pmsData instantly whenever a valid frame arrives.
+  pms.read(pmsData);
 
-  if (pms.read(pmsData)) {
-    
+  // 2. Look at the stopwatch: Have 8 seconds passed?
+  if (millis() - lastPostTime >= postInterval) {
+    lastPostTime = millis(); // Reset the stopwatch
+
+    // 3. Read the rest of the sensors
+    float temperature = dht.readTemperature();
+    float humidity = dht.readHumidity();
+    float pressure = bmp.readPressure() / 100.0F;
+    int ldrValue = analogRead(LDR_PIN);
+    int mqValue = analogRead(MQ135_PIN);
+    int rainValue = digitalRead(RAIN_PIN); 
+
     if (WiFi.status() == WL_CONNECTED) {
       
       // --- RUN EDGE INTELLIGENCE ---
@@ -172,7 +183,7 @@ void loop() {
       jsonPayload += "\"rain_detected\":" + String(rainValue == 0 ? "true" : "false") + ",";
       jsonPayload += "\"light_level\":" + String(ldrValue) + ",";
       
-      // Smart Edge Data (Strings must be wrapped in escaped quotes \")
+      // Smart Edge Data
       jsonPayload += "\"aqi_status\":\"" + aqiStatus + "\",";
       jsonPayload += "\"aqi_rec\":\"" + aqiRec + "\",";
       
@@ -206,6 +217,7 @@ void loop() {
       WiFi.reconnect();
     }
   }
-
-  delay(5000);
+  
+  // Feed the FreeRTOS watchdog timer to prevent crashes
+  delay(10); 
 }

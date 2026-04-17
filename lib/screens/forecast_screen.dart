@@ -1,14 +1,3 @@
-// ============================================================
-//  lib/screens/forecast_screen.dart
-//
-//  Requirements covered:
-//  ✅ "Weather Outlook" section displaying Team 5's forecast
-//  ✅ Shows status (e.g. "Storm Incoming"), confidence %,
-//     pressure trend, hourly outlook
-//  ✅ Pressure history mini line chart (CustomPainter)
-//  ✅ Pull-to-refresh + mock fallback
-// ============================================================
-
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../utils/app_theme.dart';
@@ -46,17 +35,14 @@ class _ForecastScreenState extends State<ForecastScreen> {
             Container(
               color: const Color(0xFF1A2340),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.cloud_outlined, color: Color(0xFF378ADD), size: 24),
-                  const SizedBox(width: 10),
-                  const Text('Weather Outlook', style: TextStyle(
+                  Icon(Icons.cloud_outlined, color: Color(0xFF378ADD), size: 24),
+                  SizedBox(width: 10),
+                  Text('Weather Outlook', style: TextStyle(
                     color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700,
                     letterSpacing: -0.4,
                   )),
-                  const Spacer(),
-                  Text('Team 5 algorithm',
-                    style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 11)),
                 ],
               ),
             ),
@@ -75,8 +61,6 @@ class _ForecastScreenState extends State<ForecastScreen> {
                           _buildPressureChart(),
                           const SizedBox(height: 16),
                           _buildHourlyRow(),
-                          const SizedBox(height: 16),
-                          _buildAlgoNote(),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -236,26 +220,6 @@ class _ForecastScreenState extends State<ForecastScreen> {
           )).toList(),
         ),
       ],
-    );
-  }
-
-  Widget _buildAlgoNote() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.blueL,
-        borderRadius: BorderRadius.circular(13),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.blueDk, size: 18),
-          SizedBox(width: 10),
-          Expanded(child: Text(
-            'Predictions are computed by Team 5\'s dP/dt barometric pressure algorithm running on the Flask backend.',
-            style: TextStyle(fontSize: 12, color: AppColors.blueDk, height: 1.5),
-          )),
-        ],
-      ),
     );
   }
 }
