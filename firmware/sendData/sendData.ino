@@ -8,7 +8,7 @@
 // --- Network Credentials ---
 const char* ssid = "Redmi Note 8";
 const char* password = "20060601";
-const char* serverName = "http://192.168.216.27:5000/sensor";
+const char* serverName = "http://192.168.194.27:5000/sensor";
 
 // --- Sensor Pin Definitions ---
 #define DHTPIN 27
