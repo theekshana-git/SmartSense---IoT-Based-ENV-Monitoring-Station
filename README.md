@@ -8,10 +8,6 @@
 
 ---
 
-## 📸 Ecosystem Preview
-<img width="602" height="281" alt="image" src="https://github.com/user-attachments/assets/0dff62ac-a72e-474d-a0c8-b5298d92313e" />
-<img width="228" height="488" alt="image" src="https://github.com/user-attachments/assets/41ec9673-c11f-4fd9-b044-106c7ab3a1b3" />
-
 
 
 ## 🚀 Key Features
